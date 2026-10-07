@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reto de Agilidad Mental</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background-color: #121212;
+      color: white;
+      font-family: 'Courier New', Courier, monospace;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    /* PANTALLA INICIAL DE INICIO */
+    #pantalla-inicio {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      z-index: 10;
+    }
+
+    #btn-comenzar {
+      margin-top: 25px;
+      padding: 15px 30px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      background-color: #ff3333;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(255, 51, 51, 0.6);
+    }
+
+    #btn-comenzar:active {
+      transform: scale(0.95);
+    }
+
+    /* ÁREA DEL JUEGO */
+    #juego-container {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #instrucciones {
+      margin-top: 30px;
+      text-align: center;
+      width: 100%;
+    }
+
+    #instrucciones h2 {
+      color: #ff4d4d;
+      font-size: 2rem;
+      margin: 0;
+    }
+
+    #objetivo {
+      position: absolute;
+      width: 85px;
+      height: 85px;
+      background-color: #ff3333;
+      border-radius: 50%;
+      cursor: pointer;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 20px rgba(255, 51, 51, 0.8);
+      transition: all 0.08s ease-out;
+    }
+
+    /* PANTALLA FINAL DE SUSTO */
+    #susto-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: black;
+      z-index: 9999;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #imagen-susto {
+      max-width: 95vw;
+      max-height: 75vh;
+      object-fit: contain;
+    }
+
+    #mensaje-susto {
+      color: #00ff00;
+      font-size: 2.8rem;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 15px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      animation: flash 0.08s infinite alternate;
+    }
+
+    @keyframes flash {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0.4; transform: scale(1.08); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. PANTALLA INICIAL PARA ACTIVAR EL AUDIO -->
+  <div id="pantalla-inicio">
+    <h1 style="color: #ff4d4d;">RETO DE AGILIDAD</h1>
+    <p>Toca el círculo rojo 3 veces lo más rápido posible.</p>
+    <button id="btn-comenzar">¡COMENZAR JUEGO!</button>
+  </div>
+
+  <!-- 2. JUEGO -->
+  <div id="juego-container">
+    <div id="instrucciones">
+      <h2>¡Atrapa el círculo!</h2>
+    </div>
+    <div id="objetivo"></div>
+  </div>
+
+  <!-- 3. PANTALLA DEL SUSTO -->
+  <div id="susto-container">
+    <img id="imagen-susto" src="susto.jpg" alt="Susto">
+    <div id="mensaje-susto">¿POR QUÉ ME MIRAS?</div>
+  </div>
+
+  <script>
+    let contadorMovimientos = 0;
+    let audioCtx = null;
+
+    const pantallaInicio = document.getElementById('pantalla-inicio');
+    const juegoContainer = document.getElementById('juego-container');
+    const btnComenzar = document.getElementById('btn-comenzar');
+    const objetivo = document.getElementById('objetivo');
+    const sustoContainer = document.getElementById('susto-container');
+
+    // Inicializar el sistema de sonido del navegador
+    function iniciarAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Sonido corto al tocar la bola
+    function reproducirToque() {
+      iniciarAudio();
+      if (!audioCtx) return;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.08);
+
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
+    }
+
+    // GENERADOR DE GRITO ESTRUENDOSO Y TERRORÍFICO (Sin archivos externos)
+    function generarGritoEstruendoso() {
+      iniciarAudio();
+      if (!audioCtx) return;
+
+      const ahora = audioCtx.currentTime;
+
+      // 1. Oscilador Principal (Alarido distorsionado)
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(400, ahora);
+      osc1.frequency.linearRampToValueAtTime(1400, ahora + 0.15);
+      osc1.frequency.linearRampToValueAtTime(300, ahora + 1.8);
+
+      gain1.gain.setValueAtTime(1.0, ahora);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ahora + 1.8);
+
+      // 2. Oscilador Secundario (Frecuencia grave perturbadora)
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(150, ahora);
+      osc2.frequency.linearRampToValueAtTime(800, ahora + 0.2);
+      osc2.frequency.linearRampToValueAtTime(100, ahora + 1.8);
+
+      gain2.gain.setValueAtTime(0.8, ahora);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ahora + 1.8);
+
+      // Conexión
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+
+      osc1.start(ahora);
+      osc2.start(ahora);
+
+      osc1.stop(ahora + 1.8);
+      osc2.stop(ahora + 1.8);
+    }
+
+    // Iniciar el juego al presionar el botón
+    btnComenzar.addEventListener('click', () => {
+      iniciarAudio();
+      pantallaInicio.style.display = 'none';
+      juegoContainer.style.display = 'block';
+    });
+
+    function moverObjetivo(e) {
+      if (e) e.preventDefault();
+      
+      contadorMovimientos++;
+
+      if (contadorMovimientos < 3) {
+        reproducirToque();
+      } else {
+        activarFinal();
+        return;
+      }
+
+      // Mover a posición aleatoria
+      const margin = 90;
+      const maxX = window.innerWidth - margin;
+      const maxY = window.innerHeight - margin;
+
+      const randomX = Math.floor(Math.random() * (maxX - margin) + margin);
+      const randomY = Math.floor(Math.random() * (maxY - margin) + margin);
+
+      objetivo.style.left = `${randomX}px`;
+      objetivo.style.top = `${randomY}px`;
+      objetivo.style.transform = 'none';
+    }
+
+    function activarFinal() {
+      juegoContainer.style.display = 'none';
+      sustoContainer.style.display = 'flex';
+      
+      // Reproducir el grito generado automáticamente
+      generarGritoEstruendoso();
+    }
+
+    objetivo.addEventListener('touchstart', moverObjetivo);
+    objetivo.addEventListener('mousedown', moverObjetivo);
+  </script>
+</body>
+</html>
